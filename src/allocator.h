@@ -3,6 +3,7 @@
 #define ALIGNMENT 16
 #define ALIGN(size) (((size) + (ALIGNMENT - 1)) & ~(ALIGNMENT - 1))
 #define BLOCK_HEADER_SIZE sizeof(block_header_t)
+#define BLOCK_FOOTER_SIZE sizeof(block_footer_t)
 
 /*
  * Byte Offset:  0        7 8    11 12   15 16               23 24               31
@@ -17,7 +18,7 @@ typedef struct block_header {
     int is_free;                // 4 bytes  : 0->allocated, 1->free
     int padding;                // 4 bytes  : padding to align next pointer
     struct block_header *next;  // 8 bytes  : next block in the linked list
-    void *padding2;             // 8 bytes  : padding for struct size to 32 bytes
+    void *padding2;             // 8 bytes  : padding for aligning struct size to 32 bytes
 } block_header_t;               // 32 bytes : Total Size
 
 static inline void *payload_of(block_header_t *header) {
@@ -28,6 +29,25 @@ static inline void *payload_of(block_header_t *header) {
 static inline block_header_t *header_of(void *ptr) {
     if (!ptr) return NULL;
     return (block_header_t *)((char *)ptr - BLOCK_HEADER_SIZE);
+}
+
+/*
+ * Byte Offset:  0        7 8    11 12   15
+ *              ┌──────────┬───────┬───────┐
+ * Field:       │   size   │is_free│padding│
+ * Type:        │  size_t  │  int  │  int  │
+ * Bytes:       │  8 bytes │4 bytes│4 bytes│
+ *              └──────────┴───────┴───────┘
+*/
+typedef struct block_footer {
+    size_t size;                // 8 bytes  : header->size
+    int is_free;                // 4 bytes  : header->is_free
+    int padding;                // 4 bytes  : padding for aligning struct size to 16 bytes
+} block_footer_t;               // 16 bytes : Total Size
+
+static inline block_footer_t *footer_of(block_header_t *header) {
+    if (!header) return NULL;
+    return (block_footer_t *)((char *)header + BLOCK_HEADER_SIZE + header->size);
 }
 
 void *my_malloc(size_t size);
