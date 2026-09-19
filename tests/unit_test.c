@@ -2,6 +2,9 @@
 #include <string.h>
 #include <assert.h>
 #include "../src/heap.h"
+#include "../src/allocator.h"
+
+#define UNUSED(x) ((void)(x))
 
 void test_contiguity(void) {
     printf("  [RUN] test_contiguity\n");
@@ -90,6 +93,65 @@ void test_large_allocation(void) {
     printf("  [PASS] test_large_allocation\n");
 }
 
+void test_header_payload_math(void) {
+    printf("  [RUN] test_header_payload_math\n");
+    char fake_block[sizeof(block_header_t) + 64];
+    block_header_t *orig_header = (block_header_t *)fake_block;
+    orig_header->size = 64;
+    orig_header->is_free = 0;
+
+    void *payload = payload_of(orig_header);
+    assert((char *)payload == fake_block + sizeof(block_header_t));
+
+    block_header_t *recovered = header_of(payload);
+    assert(recovered == orig_header);
+    assert(recovered->size == 64);
+    printf("  [PASS] test_header_payload_math\n");
+}
+
+void test_byte_alignment(void) {
+    printf("  [RUN] test_byte_alignment\n");
+    void *ptr1 = my_malloc(1);
+    void *ptr2 = my_malloc(7);
+    void *ptr3 = my_malloc(9);
+    void *ptr4 = my_malloc(35);
+    void *ptr5 = my_malloc(101);
+
+    assert(((size_t)ptr1 & (ALIGNMENT-1)) == 0);
+    assert(((size_t)ptr2 & (ALIGNMENT-1)) == 0);
+    assert(((size_t)ptr3 & (ALIGNMENT-1)) == 0);
+    assert(((size_t)ptr4 & (ALIGNMENT-1)) == 0);
+    assert(((size_t)ptr5 & (ALIGNMENT-1)) == 0);
+    printf("  [PASS] test_byte_alignment\n");
+}
+
+void test_memory_reuse(void) {
+    printf("  [RUN] test_memory_reuse\n");
+    void *p1 = my_malloc(64);
+    void *p2 = my_malloc(64);
+    void *p3 = my_malloc(64);
+
+    // Suppress unused warnings
+    UNUSED(p1);
+    UNUSED(p3);
+
+    // Free the middle block
+    my_free(p2);
+
+    // Record the current program break
+    void *break_before = sbrk(0);
+
+    // Allocate 64 bytes again - MUST reuse p2!
+    void *p4 = my_malloc(64);
+    assert(p4 == p2);
+
+    // Verify program break did not advance
+    void *break_after = sbrk(0);
+    assert(break_before == break_after);
+    printf("  [PASS] test_memory_reuse\n");
+}
+
+
 int main(void) {
     printf("========================================\n");
     printf("        Running Unit Tests              \n");
@@ -99,6 +161,9 @@ int main(void) {
     test_memory_safety_no_overlap();
     test_chunk_refill();
     test_large_allocation();
+    test_header_payload_math();
+    test_byte_alignment();
+    test_memory_reuse();
 
     printf("========================================\n");
     printf("        ALL TESTS PASSED!               \n");
