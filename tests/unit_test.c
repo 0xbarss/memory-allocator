@@ -151,6 +151,43 @@ void test_memory_reuse(void) {
     printf("  [PASS] test_memory_reuse\n");
 }
 
+void test_splitting(void) {
+    printf("  [RUN] test_splitting\n");
+    // Allocate a large 1024-byte block, then free it
+    void *p = my_malloc(1024);
+    my_free(p);
+
+    // Request 64 bytes - should split the 1024-byte block
+    void *small1 = my_malloc(64);
+    assert(small1 == p);
+
+    // Request another 64 bytes - should get the carved remainder
+    void *small2 = my_malloc(64);
+    assert(small2 > small1);
+    assert((char *)small2 < (char *)small1 + 1024);
+    printf("  [PASS] test_splitting\n");
+}
+
+void test_coalescing(void) {
+    printf("  [RUN] test_coalescing\n");
+    void *a = my_malloc(128);
+    void *b = my_malloc(128);
+    void *c = my_malloc(128);
+
+    // Free B, then free A -> should coalesce into 1 block of ~256+ bytes
+    my_free(b);
+    my_free(a);
+
+    // Free C -> should coalesce A, B, and C into 1 block of ~384+ bytes
+    my_free(c);
+
+    // Allocate 384 bytes -> must fit in the merged block without heap growth
+    void *break_before = sbrk(0);
+    void *big = my_malloc(384);
+    assert(big == a);
+    assert(sbrk(0) == break_before);
+    printf("  [PASS] test_coalescing\n");
+}
 
 int main(void) {
     printf("========================================\n");
@@ -164,6 +201,8 @@ int main(void) {
     test_header_payload_math();
     test_byte_alignment();
     test_memory_reuse();
+    test_splitting();
+    test_coalescing();
 
     printf("========================================\n");
     printf("        ALL TESTS PASSED!               \n");
