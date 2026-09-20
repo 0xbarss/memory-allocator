@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include <stdint.h>
 #include <assert.h>
 #include "../src/heap.h"
 #include "../src/allocator.h"
@@ -189,6 +190,155 @@ void test_coalescing(void) {
     printf("  [PASS] test_coalescing\n");
 }
 
+void test_calloc_zero_init(void) {
+    printf("  [RUN] test_calloc_zero_init\n");
+    size_t count = 64;
+    size_t elem_size = 4;
+    unsigned char *ptr = (unsigned char *)my_calloc(count, elem_size);
+    assert(ptr != NULL);
+    assert(((size_t)ptr & (ALIGNMENT - 1)) == 0);
+
+    // Verify all bytes are 0
+    for (size_t i = 0; i < count * elem_size; i++) {
+        assert(ptr[i] == 0);
+    }
+
+    my_free(ptr);
+    printf("  [PASS] test_calloc_zero_init\n");
+}
+
+void test_calloc_overflow(void) {
+    printf("  [RUN] test_calloc_overflow\n");
+    // SIZE_MAX * 2 should overflow
+    void *p1 = my_calloc(SIZE_MAX, 2);
+    assert(p1 == NULL);
+
+    // Another overflow case
+    void *p2 = my_calloc(SIZE_MAX / 2 + 1, 3);
+    assert(p2 == NULL);
+
+    // Zero element or size should return NULL
+    void *p3 = my_calloc(0, 10);
+    assert(p3 == NULL);
+    void *p4 = my_calloc(10, 0);
+    assert(p4 == NULL);
+
+    printf("  [PASS] test_calloc_overflow\n");
+}
+
+void test_realloc_edge_cases(void) {
+    printf("  [RUN] test_realloc_edge_cases\n");
+
+    // ptr == NULL acts like malloc
+    void *p = my_realloc(NULL, 64);
+    assert(p != NULL);
+    assert(((size_t)p & (ALIGNMENT - 1)) == 0);
+
+    // new_size == 0 acts like free
+    void *p_null = my_realloc(p, 0);
+    assert(p_null == NULL);
+
+    // Verify p was actually freed by checking that a 64-byte allocation reuses it
+    void *reused = my_malloc(64);
+    assert(reused == p);
+    my_free(reused);
+
+    printf("  [PASS] test_realloc_edge_cases\n");
+}
+
+void test_realloc_shrink(void) {
+    printf("  [RUN] test_realloc_shrink\n");
+
+    size_t orig_size = 256;
+    size_t new_size = 64;
+    unsigned char *p = (unsigned char *)my_malloc(orig_size);
+    assert(p != NULL);
+
+    // Fill with pattern
+    memset(p, 0xAB, orig_size);
+
+    // Shrink
+    unsigned char *shrunk = (unsigned char *)my_realloc(p, new_size);
+    // Should shrink in-place (return the same pointer)
+    assert(shrunk == p);
+
+    // First new_size bytes must be preserved
+    for (size_t i = 0; i < new_size; i++) {
+        assert(shrunk[i] == 0xAB);
+    }
+
+    // Remainder should have been split and available for reuse
+    void *remainder = my_malloc(64);
+    assert(remainder != NULL);
+    assert(remainder > (void *)shrunk);
+
+    my_free(shrunk);
+    my_free(remainder);
+
+    printf("  [PASS] test_realloc_shrink\n");
+}
+
+void test_realloc_grow_in_place(void) {
+    printf("  [RUN] test_realloc_grow_in_place\n");
+
+    unsigned char *a = (unsigned char *)my_malloc(64);
+    unsigned char *b = (unsigned char *)my_malloc(64);
+    assert(a != NULL && b != NULL);
+
+    memset(a, 0x42, 64);
+
+    // Free b so it is free immediately after a
+    my_free(b);
+
+    // Realloc a to 128 bytes - should absorb b in place
+    unsigned char *grown = (unsigned char *)my_realloc(a, 128);
+    assert(grown == a);
+
+    // Check original 64 bytes preserved
+    for (size_t i = 0; i < 64; i++) {
+        assert(grown[i] == 0x42);
+    }
+
+    my_free(grown);
+    printf("  [PASS] test_realloc_grow_in_place\n");
+}
+
+void test_realloc_fallback_move(void) {
+    printf("  [RUN] test_realloc_fallback_move\n");
+
+    unsigned char *a = (unsigned char *)my_malloc(64);
+    unsigned char *b = (unsigned char *)my_malloc(64);
+    assert(a != NULL && b != NULL);
+
+    memset(a, 0x77, 64);
+    memset(b, 0x88, 64);
+
+    // b is still allocated, so a cannot grow in-place. Must move!
+    unsigned char *moved = (unsigned char *)my_realloc(a, 256);
+    assert(moved != NULL);
+    assert(moved != a);
+
+    // Data in moved must match original a
+    for (size_t i = 0; i < 64; i++) {
+        assert(moved[i] == 0x77);
+    }
+
+    // b must be untouched
+    for (size_t i = 0; i < 64; i++) {
+        assert(b[i] == 0x88);
+    }
+
+    // Old block a must be freed, so a 64-byte allocation should reuse it
+    void *reused = my_malloc(64);
+    assert(reused == a);
+
+    my_free(moved);
+    my_free(b);
+    my_free(reused);
+
+    printf("  [PASS] test_realloc_fallback_move\n");
+}
+
 int main(void) {
     printf("========================================\n");
     printf("        Running Unit Tests              \n");
@@ -203,6 +353,12 @@ int main(void) {
     test_memory_reuse();
     test_splitting();
     test_coalescing();
+    test_calloc_zero_init();
+    test_calloc_overflow();
+    test_realloc_edge_cases();
+    test_realloc_shrink();
+    test_realloc_grow_in_place();
+    test_realloc_fallback_move();
 
     printf("========================================\n");
     printf("        ALL TESTS PASSED!               \n");
