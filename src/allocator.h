@@ -1,4 +1,5 @@
 #include <unistd.h>
+#include <stdint.h>
 
 #define ALIGNMENT 16
 #define ALIGN(size) (((size) + (ALIGNMENT - 1)) & ~(ALIGNMENT - 1))
@@ -52,3 +53,5 @@ static inline block_footer_t *footer_of(block_header_t *header) {
 
 void *my_malloc(size_t size);
 void my_free(void *ptr);
+void *my_calloc(size_t nmemb, size_t size);
+void *my_realloc(void *ptr, size_t size);

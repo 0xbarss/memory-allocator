@@ -1,4 +1,6 @@
+#include <stdint.h>
 #include <stdio.h>
+#include <string.h>
 #include <unistd.h>
 #include "allocator.h"
 #include "heap.h"
@@ -112,4 +114,50 @@ void coalesce(block_header_t *header) {
 void my_free(void *ptr) {
     if (ptr == NULL) return;
     coalesce(header_of(ptr));
+}
+
+void *my_calloc(size_t nmemb, size_t size) {
+    // Check for multiplication overflow
+    if (size != 0 && nmemb > SIZE_MAX / size) {
+        return NULL;
+    }
+    size_t total_size = nmemb * size;
+    void *ptr = my_malloc(total_size);
+    if (ptr != NULL) {
+        memset(ptr, 0, total_size);
+    }
+    return ptr;
+}
+
+void *my_realloc(void *ptr, size_t new_size) {
+    if (ptr == NULL) return my_malloc(new_size);
+    if (new_size == 0) {
+        my_free(ptr);
+        return NULL;
+    }
+
+    size_t aligned_size = ALIGN(new_size);
+    block_header_t *header = header_of(ptr);
+    if (aligned_size <= header->size) {
+        split_block(header, aligned_size);
+        return ptr;
+    }
+
+    block_header_t *next = header->next;
+    if (next != NULL && next->is_free) {
+        size_t combined_size = header->size + BLOCK_HEADER_SIZE + next->size + BLOCK_FOOTER_SIZE;
+        if (aligned_size <= combined_size) {
+            header->size = combined_size;
+            header->next = next->next;
+            set_footer(header);
+            split_block(header, aligned_size);
+            return ptr;
+        }
+    }
+
+    void *new_ptr = my_malloc(aligned_size);
+    if (new_ptr == NULL) return NULL;
+    memcpy(new_ptr, ptr, header->size);
+    my_free(ptr);
+    return new_ptr;
 }
