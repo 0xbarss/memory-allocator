@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
-#include "allocator.h"
+#include "strategy.h"
 #include "heap.h"
 
 #define MIN_PAYLOAD 16
@@ -32,6 +32,9 @@ static void split_block(block_header_t *block, size_t requested_size) {
         remainder->next = block->next;
         block->next = remainder;
         set_footer(remainder);
+        if (current_strategy == STRATEGY_SEGREGATED) {
+            insert_into_bin(remainder);
+        }
     }
 }
 
@@ -39,18 +42,21 @@ void *my_malloc(size_t size) {
     if (size == 0) return NULL;
     size_t aligned_size = ALIGN(size);
     block_header_t *curr = heap_blocks_head;
-    block_header_t *last = NULL;
 
-    // Search existing blocks (first-fit)
-    while (curr != NULL) {
-        if (curr->is_free == 1 && curr->size >= aligned_size) {
-            curr->is_free = 0;
-            split_block(curr, aligned_size);
-            set_footer(curr);
-            return payload_of(curr);
-        }
-        last = curr;
-        curr = curr->next;
+    // Search existing blocks
+    if (current_strategy == STRATEGY_FIRST_FIT) {
+        curr = find_block_first_fit(curr, aligned_size);
+    } else if (current_strategy == STRATEGY_BEST_FIT) {
+        curr = find_block_best_fit(curr, aligned_size);
+    } else {
+        curr = find_block_segregated(curr, aligned_size);
+    }
+
+    if (curr != NULL) {
+        curr->is_free = 0;
+        split_block(curr, aligned_size);
+        set_footer(curr);
+        return payload_of(curr);
     }
 
     // No Block Found -> Extend Heap
@@ -63,7 +69,13 @@ void *my_malloc(size_t size) {
     new_block->next = NULL;
 
     if (heap_blocks_head == NULL) heap_blocks_head = new_block;
-    else last->next = new_block;
+    else {
+        block_header_t *last = heap_blocks_head;
+        while (last->next != NULL) {
+            last = last->next;
+        }
+        last->next = new_block;
+    }
     set_footer(new_block);
     return payload_of(new_block);
 }
@@ -87,27 +99,37 @@ void coalesce(block_header_t *header) {
 
     // Prev allocated, next free
     if (!is_prev_free && is_next_free) {
+        if (current_strategy == STRATEGY_SEGREGATED) remove_from_bin(next);
         header->size += BLOCK_HEADER_SIZE + next->size + BLOCK_FOOTER_SIZE;
         header->is_free = 1;
         header->next = next->next;
         set_footer(header);
+        if (current_strategy == STRATEGY_SEGREGATED) insert_into_bin(header);
     }
     // Prev free, next allocated
     else if (is_prev_free && !is_next_free) {
+        if (current_strategy == STRATEGY_SEGREGATED) remove_from_bin(prev);
         prev->size += BLOCK_HEADER_SIZE + header->size + BLOCK_FOOTER_SIZE;
         prev->next = header->next;
         set_footer(prev);
+        if (current_strategy == STRATEGY_SEGREGATED) insert_into_bin(prev);
     }
     // Both free
     else if (is_prev_free && is_next_free) {
+        if (current_strategy == STRATEGY_SEGREGATED) {
+            remove_from_bin(prev);
+            remove_from_bin(next);
+        }
         prev->size += (2*BLOCK_HEADER_SIZE + header->size + next->size + 2*BLOCK_FOOTER_SIZE);
         prev->next = next->next;
         set_footer(prev);
+        if (current_strategy == STRATEGY_SEGREGATED) insert_into_bin(prev);
     }
     // Both allocated
     else {
         header->is_free = 1;
         set_footer(header);
+        if (current_strategy == STRATEGY_SEGREGATED) insert_into_bin(header);
     }
 }
 
@@ -147,6 +169,7 @@ void *my_realloc(void *ptr, size_t new_size) {
     if (next != NULL && next->is_free) {
         size_t combined_size = header->size + BLOCK_HEADER_SIZE + next->size + BLOCK_FOOTER_SIZE;
         if (aligned_size <= combined_size) {
+            if (current_strategy == STRATEGY_SEGREGATED) remove_from_bin(next);
             header->size = combined_size;
             header->next = next->next;
             set_footer(header);

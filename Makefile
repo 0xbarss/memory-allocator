@@ -5,7 +5,7 @@ BUILD_DIR = build
 TARGET = $(BUILD_DIR)/main
 TEST_TARGET = $(BUILD_DIR)/unit_test
 
-LIB_SRC = src/heap.c src/allocator.c
+LIB_SRC = src/heap.c src/allocator.c src/strategy.c
 MAIN_SRC = src/main.c
 TEST_SRC = tests/unit_test.c
 
