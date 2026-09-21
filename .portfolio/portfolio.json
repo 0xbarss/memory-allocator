@@ -1,0 +1,54 @@
+{
+  "tagline": "A Unix memory allocator in C with boundary tag coalescing and segregated free lists",
+  "cover": "cover.png",
+  "highlights": [
+    "Pluggable allocation policies: First-Fit, Best-Fit, and Segregated Free Lists (8 size classes)",
+    "Sub-microsecond allocation latency across small object workloads",
+    "16-byte payload alignment with 32-byte headers and 16-byte boundary tag footers",
+    "Bidirectional coalescing and in-place realloc growth to reduce external fragmentation",
+    "Multi-process micro-benchmark harness measuring latency and heap growth against glibc"
+  ],
+  "links": [
+    {
+      "label": "Source Code",
+      "url": "https://github.com/0xbarss/memory-allocator"
+    },
+    {
+      "label": "Benchmark Harness",
+      "url": "https://github.com/0xbarss/memory-allocator/blob/master/bench/compare_glibc.c"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "text",
+      "body": "Dynamic memory allocators manage the heap by requesting memory pages from the operating system kernel and sub-allocating them to the application. Without careful bookkeeping, heaps suffer from external fragmentation and high search latency. This project implements drop-in C memory management functions with predictable latency and low metadata overhead."
+    },
+    {
+      "type": "image",
+      "src": "architecture.png",
+      "caption": "Figure 1: System architecture diagram showing the client application, allocator engine, and Linux kernel layers"
+    },
+    {
+      "type": "text",
+      "body": "The system separates user-facing API calls from internal heap bookkeeping and kernel interactions. The front-end handles 16-byte alignment and metadata calculations before dispatching requests to the policy engine. If existing free blocks cannot satisfy an allocation, the allocator invokes the sbrk system call to grow the process data segment."
+    },
+    {
+      "type": "image",
+      "src": "memory_block.png",
+      "caption": "Figure 2: Memory block layout showing 32-byte header, 16-byte aligned payload, and 16-byte boundary tag footer"
+    },
+    {
+      "type": "text",
+      "body": "Each heap block contains a 32-byte header with block size, allocation status, and free-list pointers. An accompanying 16-byte boundary tag footer mirrors the size and status flags at the end of the block. This layout allows my_free to inspect both left and right physical neighbors in O(1) constant time, coalescing adjacent free blocks without scanning the list."
+    },
+    {
+      "type": "image",
+      "src": "benchmark_chart.png",
+      "caption": "Figure 3: Allocation latency benchmark comparing glibc, First-Fit, Best-Fit, and Segregated Free Lists"
+    },
+    {
+      "type": "text",
+      "body": "The benchmark harness runs workloads in isolated child processes to record wall-clock latency and heap growth. First-Fit and Best-Fit rely on linear scans that scale with the number of live allocations. Segregated Free Lists groups blocks into eight power-of-two size classes, which cuts search times to constant-time bin indexing during small object churn."
+    }
+  ]
+}
