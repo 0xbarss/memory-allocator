@@ -69,7 +69,7 @@ void *my_malloc(size_t size) {
     new_block->next = NULL;
 
     if (heap_blocks_head == NULL) heap_blocks_head = new_block;
-    else {
+    else if (current_strategy != STRATEGY_SEGREGATED) {
         block_header_t *last = heap_blocks_head;
         while (last->next != NULL) {
             last = last->next;
