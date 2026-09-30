@@ -1,6 +1,7 @@
 {
   "tagline": "A Unix memory allocator in C with boundary tag coalescing and segregated free lists",
   "cover": "cover.png",
+  "coverAspectRatio": "1200 / 630",
   "highlights": [
     "Pluggable allocation policies: First-Fit, Best-Fit, and Segregated Free Lists (8 size classes)",
     "Sub-microsecond allocation latency across small object workloads",
@@ -26,7 +27,10 @@
     {
       "type": "image",
       "src": "architecture.png",
-      "caption": "Figure 1: System architecture diagram showing the client application, allocator engine, and Linux kernel layers"
+      "caption": "Figure 1: System architecture diagram showing the client application, allocator engine, and Linux kernel layers",
+      "aspectRatio": "1000 / 580",
+      "width": 1000,
+      "height": 580
     },
     {
       "type": "text",
@@ -35,7 +39,10 @@
     {
       "type": "image",
       "src": "memory_block.png",
-      "caption": "Figure 2: Memory block layout showing 32-byte header, 16-byte aligned payload, and 16-byte boundary tag footer"
+      "caption": "Figure 2: Memory block layout showing 32-byte header, 16-byte aligned payload, and 16-byte boundary tag footer",
+      "aspectRatio": "1200 / 620",
+      "width": 1200,
+      "height": 620
     },
     {
       "type": "text",
@@ -44,7 +51,10 @@
     {
       "type": "image",
       "src": "benchmark_chart.png",
-      "caption": "Figure 3: Allocation latency benchmark comparing glibc, First-Fit, Best-Fit, and Segregated Free Lists"
+      "caption": "Figure 3: Allocation latency benchmark comparing glibc, First-Fit, Best-Fit, and Segregated Free Lists",
+      "aspectRatio": "1200 / 650",
+      "width": 1200,
+      "height": 650
     },
     {
       "type": "text",
