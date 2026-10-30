@@ -1,64 +1,109 @@
 {
-  "tagline": "A Unix memory allocator in C with boundary tag coalescing and segregated free lists",
+  "tagline": {
+    "en": "A Unix memory allocator in C with boundary tag coalescing and segregated free lists",
+    "tr": "Sınır etiketleriyle birleştirme ve boyut sınıflarına ayrılmış serbest listeler kullanan, C ile geliştirilmiş bir Unix bellek ayırıcı"
+  },
   "cover": "cover.png",
   "coverAspectRatio": "1200 / 630",
   "highlights": [
-    "Pluggable allocation policies: First-Fit, Best-Fit, and Segregated Free Lists (8 size classes)",
-    "Sub-microsecond allocation latency across small object workloads",
-    "16-byte payload alignment with 32-byte headers and 16-byte boundary tag footers",
-    "Bidirectional coalescing and in-place realloc growth to reduce external fragmentation",
-    "Multi-process micro-benchmark harness measuring latency and heap growth against glibc"
+    {
+      "en": "Pluggable allocation policies: First-Fit, Best-Fit, and Segregated Free Lists (8 size classes)",
+      "tr": "Esnek bellek ayırma politikaları: First-Fit, Best-Fit ve Segregated Free Lists (8 boyut sınıfı)"
+    },
+    {
+      "en": "Sub-microsecond allocation latency across small object workloads",
+      "tr": "Küçük nesne iş yüklerinde mikrosaniyenin altında bellek ayırma gecikmesi"
+    },
+    {
+      "en": "16-byte payload alignment with 32-byte headers and 16-byte boundary tag footers",
+      "tr": "32 baytlık başlıklar ve 16 baytlık sınır etiketi son alanlarıyla 16 bayt hizalı veri alanı"
+    },
+    {
+      "en": "Bidirectional coalescing and in-place realloc growth to reduce external fragmentation",
+      "tr": "Harici parçalanmayı azaltmak için iki yönde blok birleştirme ve belleği yerinde yeniden ayırarak büyütme"
+    },
+    {
+      "en": "Multi-process micro-benchmark harness measuring latency and heap growth against glibc",
+      "tr": "glibc ile karşılaştırmalı gecikme ve yığın büyümesi ölçümleri yapan, çok süreçli mikro kıyaslama düzeneği"
+    }
   ],
   "links": [
     {
-      "label": "Source Code",
+      "label": {
+        "en": "Source Code",
+        "tr": "Kaynak Kod"
+      },
       "url": "https://github.com/0xbarss/memory-allocator"
     },
     {
-      "label": "Benchmark Harness",
+      "label": {
+        "en": "Benchmark Harness",
+        "tr": "Kıyaslama Düzeneği"
+      },
       "url": "https://github.com/0xbarss/memory-allocator/blob/master/bench/compare_glibc.c"
     }
   ],
   "blocks": [
     {
       "type": "text",
-      "body": "Dynamic memory allocators manage the heap by requesting memory pages from the operating system kernel and sub-allocating them to the application. Without careful bookkeeping, heaps suffer from external fragmentation and high search latency. This project implements drop-in C memory management functions with predictable latency and low metadata overhead."
+      "body": {
+        "en": "Dynamic memory allocators manage the heap by requesting memory pages from the operating system kernel and sub-allocating them to the application. Without careful bookkeeping, heaps suffer from external fragmentation and high search latency. This project implements drop-in C memory management functions with predictable latency and low metadata overhead.",
+        "tr": "Dinamik bellek ayırıcıları, işletim sistemi çekirdeğinden bellek sayfaları isteyip bu sayfaları uygulamaya daha küçük parçalar hâlinde tahsis ederek yığın belleğini (heap) yönetir. Bellek kullanımı dikkatle izlenmediğinde yığında harici parçalanma ve uzun arama süreleri ortaya çıkar. Bu proje, öngörülebilir gecikme ve düşük üstveri maliyeti sunan, mevcut C bellek yönetimi işlevlerinin yerine doğrudan kullanılabilen işlevler geliştirir."
+      }
     },
     {
       "type": "image",
       "src": "architecture.png",
-      "caption": "Figure 1: System architecture diagram showing the client application, allocator engine, and Linux kernel layers",
+      "caption": {
+        "en": "Figure 1: System architecture diagram showing the client application, allocator engine, and Linux kernel layers",
+        "tr": "Şekil 1: İstemci uygulaması, bellek ayırıcı motoru ve Linux çekirdeği katmanlarını gösteren sistem mimarisi"
+      },
       "aspectRatio": "1000 / 580",
       "width": 1000,
       "height": 580
     },
     {
       "type": "text",
-      "body": "The system separates user-facing API calls from internal heap bookkeeping and kernel interactions. The front-end handles 16-byte alignment and metadata calculations before dispatching requests to the policy engine. If existing free blocks cannot satisfy an allocation, the allocator invokes the sbrk system call to grow the process data segment."
+      "body": {
+        "en": "The system separates user-facing API calls from internal heap bookkeeping and kernel interactions. The front-end handles 16-byte alignment and metadata calculations before dispatching requests to the policy engine. If existing free blocks cannot satisfy an allocation, the allocator invokes the sbrk system call to grow the process data segment.",
+        "tr": "Sistem, kullanıcıya açık API çağrılarını yığının dahili yönetiminden ve çekirdekle etkileşimlerden ayırır. Ön uç, istekleri politika motoruna iletmeden önce 16 bayt hizalamayı ve üstveri hesaplamalarını gerçekleştirir. Mevcut boş bloklardan hiçbiri bellek isteğini karşılayamazsa ayırıcı, sürecin veri segmentini genişletmek için sbrk sistem çağrısını kullanır."
+      }
     },
     {
       "type": "image",
       "src": "memory_block.png",
-      "caption": "Figure 2: Memory block layout showing 32-byte header, 16-byte aligned payload, and 16-byte boundary tag footer",
+      "caption": {
+        "en": "Figure 2: Memory block layout showing 32-byte header, 16-byte aligned payload, and 16-byte boundary tag footer",
+        "tr": "Şekil 2: 32 baytlık başlığı, 16 bayt hizalı veri alanını ve 16 baytlık sınır etiketi son alanını gösteren bellek bloğu düzeni"
+      },
       "aspectRatio": "1200 / 620",
       "width": 1200,
       "height": 620
     },
     {
       "type": "text",
-      "body": "Each heap block contains a 32-byte header with block size, allocation status, and free-list pointers. An accompanying 16-byte boundary tag footer mirrors the size and status flags at the end of the block. This layout allows my_free to inspect both left and right physical neighbors in O(1) constant time, coalescing adjacent free blocks without scanning the list."
+      "body": {
+        "en": "Each heap block contains a 32-byte header with block size, allocation status, and free-list pointers. An accompanying 16-byte boundary tag footer mirrors the size and status flags at the end of the block. This layout allows my_free to inspect both left and right physical neighbors in O(1) constant time, coalescing adjacent free blocks without scanning the list.",
+        "tr": "Her yığın bloğu; blok boyutunu, ayırma durumunu ve serbest liste işaretçilerini tutan 32 baytlık bir başlık içerir. Bloğun sonunda bulunan 16 baytlık sınır etiketi son alanı, boyut ve durum bayraklarının bir kopyasını barındırır. Bu düzen sayesinde my_free işlevi, listeyi taramadan hem sol hem de sağ fiziksel komşu bloğu O(1) sabit zamanda inceleyebilir ve bitişik boş blokları birleştirebilir."
+      }
     },
     {
       "type": "image",
       "src": "benchmark_chart.png",
-      "caption": "Figure 3: Allocation latency benchmark comparing glibc, First-Fit, Best-Fit, and Segregated Free Lists",
+      "caption": {
+        "en": "Figure 3: Allocation latency benchmark comparing glibc, First-Fit, Best-Fit, and Segregated Free Lists",
+        "tr": "Şekil 3: glibc, First-Fit, Best-Fit ve Segregated Free Lists yöntemlerinin bellek ayırma gecikmesini karşılaştıran kıyaslama grafiği"
+      },
       "aspectRatio": "1200 / 650",
       "width": 1200,
       "height": 650
     },
     {
       "type": "text",
-      "body": "The benchmark harness runs workloads in isolated child processes to record wall-clock latency and heap growth. First-Fit and Best-Fit rely on linear scans that scale with the number of live allocations. Segregated Free Lists groups blocks into eight power-of-two size classes, which cuts search times to constant-time bin indexing during small object churn."
+      "body": {
+        "en": "The benchmark harness runs workloads in isolated child processes to record wall-clock latency and heap growth. First-Fit and Best-Fit rely on linear scans that scale with the number of live allocations. Segregated Free Lists groups blocks into eight power-of-two size classes, which cuts search times to constant-time bin indexing during small object churn.",
+        "tr": "Kıyaslama düzeneği, gerçek geçen süreye dayalı gecikmeyi ve yığın belleğindeki büyümeyi ölçmek için iş yüklerini birbirinden yalıtılmış alt süreçlerde çalıştırır. First-Fit ve Best-Fit, canlı ayırma sayısıyla birlikte maliyeti artan doğrusal liste taramalarına dayanır. Segregated Free Lists ise blokları ikinin kuvvetlerine göre belirlenen sekiz boyut sınıfına ayırır; böylece küçük nesnelerin sık sık ayrılıp serbest bırakıldığı iş yüklerinde arama, sabit zamanlı sınıf indekslemesiyle gerçekleştirilir."
+      }
     }
   ]
 }
